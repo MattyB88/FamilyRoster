@@ -6,40 +6,47 @@
     <title>Board of Eventuallaty</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --text: #fff; --accent: #3b82f6; --lyla: #a855f7; --jacob: #10b981; --dad: #f59e0b; --mum: #ef4444; }
+        :root { --bg: #121212; --card: #1e1e1e; --text: #fff; --accent: #3b82f6; --lyla: #a855f7; --jacob: #10b981; --dad: #f59e0b; --mum: #ef4444; --blocked: #dc2626;}
         * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
         body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
         h1 { text-align: center; color: var(--accent); font-size: 22px; margin-bottom: 5px; }
         .subtitle { text-align: center; color: #888; font-size: 12px; margin-top: 0; margin-bottom: 20px;}
         
-        /* Timers Section */
         .timers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .kid-card { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border-top: 4px solid; }
-        .kid-card.lyla { border-color: var(--lyla); }
-        .kid-card.jacob { border-color: var(--jacob); }
+        .kid-card.lyla { border-color: var(--lyla); } .kid-card.jacob { border-color: var(--jacob); }
         .timer-btn { width: 100%; padding: 8px; margin: 4px 0; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
         .timer-btn.hw { background: #333; } .timer-btn.out { background: #333; }
         .timer-btn.active { background: #eab308; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* Kanban Board */
         .board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;}
         .column { flex: 0 0 85%; background: #1a1a1a; border-radius: 8px; padding: 10px; scroll-snap-align: start; border: 1px solid #333;}
         .col-header { font-weight: bold; text-transform: uppercase; font-size: 14px; margin-bottom: 10px; color: #aaa; text-align: center;}
         
         .task { background: var(--card); padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #555; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .task[data-owner="Lyla"] { border-color: var(--lyla); }
-        .task[data-owner="Jacob"] { border-color: var(--jacob); }
-        .task[data-owner="Dad"] { border-color: var(--dad); }
-        .task[data-owner="Mum"] { border-color: var(--mum); }
+        .task[data-owner="Lyla"] { border-color: var(--lyla); } .task[data-owner="Jacob"] { border-color: var(--jacob); }
+        .task[data-owner="Dad"] { border-color: var(--dad); } .task[data-owner="Mum"] { border-color: var(--mum); }
+        .task.is-blocked { border-color: var(--blocked); background: #3f1515; }
         
         .add-task { display: flex; gap: 5px; margin-bottom: 20px; }
         .add-task input, .add-task select { padding: 10px; background: var(--card); border: 1px solid #333; color: white; border-radius: 6px; }
         .add-task button { padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; flex-grow: 1;}
 
-        /* Analytics */
         #analytics-btn { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer;}
         #chart-container { display: none; background: var(--card); padding: 15px; border-radius: 8px; margin-top: 15px; }
+
+        /* --- NEW MODAL STYLES --- */
+        #task-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; border: 1px solid #444;}
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;}
+        .modal-header h2 { margin: 0; font-size: 18px; color: var(--accent);}
+        .close-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer;}
+        .modal-notes { width: 100%; height: 80px; background: #111; color: white; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-family: inherit;}
+        .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;}
+        .action-btn { padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;}
+        .btn-back { background: #4b5563; } .btn-fwd { background: var(--accent); }
+        .btn-block { background: var(--blocked); grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -63,42 +70,45 @@
     <div class="add-task">
         <input type="text" id="new-task-name" placeholder="New Chore..." style="flex-grow: 2;">
         <select id="new-task-owner">
-            <option value="Any">Any</option>
-            <option value="Lyla">Lyla</option>
-            <option value="Jacob">Jacob</option>
-            <option value="Mum">Mum</option>
-            <option value="Dad">Dad</option>
+            <option value="Any">Any</option><option value="Lyla">Lyla</option><option value="Jacob">Jacob</option><option value="Mum">Mum</option><option value="Dad">Dad</option>
         </select>
         <button onclick="addTask()">ADD</button>
     </div>
 
-    <p style="font-size:10px; color:#888; text-align:center;">Swipe columns left/right. Tap a task to move it forward.</p>
-
     <div class="board">
-        <div class="column" id="col-todo">
-            <div class="col-header">📌 To Do</div>
-            <div class="task-list" id="list-todo"></div>
-        </div>
-        <div class="column" id="col-progress">
-            <div class="col-header">⏳ In Progress</div>
-            <div class="task-list" id="list-progress"></div>
-        </div>
-        <div class="column" id="col-done">
-            <div class="col-header">✅ Done</div>
-            <div class="task-list" id="list-done"></div>
-        </div>
+        <div class="column" id="col-todo"><div class="col-header">📌 To Do</div><div class="task-list" id="list-todo"></div></div>
+        <div class="column" id="col-progress"><div class="col-header">⏳ In Progress</div><div class="task-list" id="list-progress"></div></div>
+        <div class="column" id="col-done"><div class="col-header">✅ Done</div><div class="task-list" id="list-done"></div></div>
     </div>
 
     <button id="analytics-btn" onclick="toggleAnalytics()">📊 VIEW WEEKLY STATS</button>
-    <div id="chart-container">
-        <canvas id="statsChart"></canvas>
+    <div id="chart-container"><canvas id="statsChart"></canvas></div>
+
+    <div id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-task-name">Task Name</h2>
+                    <small id="modal-task-owner" style="color:#888;">Owner</small>
+                </div>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            
+            <label style="font-size:12px; color:#aaa;">Notes / Reason if blocked:</label>
+            <textarea id="modal-notes" class="modal-notes" placeholder="Add details here..."></textarea>
+            
+            <div class="modal-actions">
+                <button class="action-btn btn-back" onclick="moveTaskFromModal('back')">← Move Back</button>
+                <button class="action-btn btn-fwd" onclick="moveTaskFromModal('forward')">Move Forward →</button>
+                <button class="action-btn btn-block" id="modal-block-btn" onclick="toggleBlockTask()">🛑 Mark as Blocked</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-        // Your exact Firebase keys
         const firebaseConfig = {
             apiKey: "AIzaSyDIZPvA5GUPfmyVrQYFN61wFsyHhtGZyyI",
             authDomain: "liveroster-f26ea.firebaseapp.com",
@@ -111,72 +121,119 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- GLOBAL LOGIC FOR HTML BUTTONS ---
+        // --- NEW MODAL LOGIC ---
+        let activeTaskId = null;
+        let activeTaskData = null;
+
+        window.openTaskModal = function(id) {
+            activeTaskId = id;
+            activeTaskData = currentTasksData[id];
+            
+            document.getElementById('modal-task-name').innerText = activeTaskData.name;
+            document.getElementById('modal-task-owner').innerText = activeTaskData.owner;
+            document.getElementById('modal-notes').value = activeTaskData.notes || '';
+            
+            const blockBtn = document.getElementById('modal-block-btn');
+            if(activeTaskData.blocked) {
+                blockBtn.innerText = "✅ Unblock Task";
+                blockBtn.style.background = "#10b981"; // green
+            } else {
+                blockBtn.innerText = "🛑 Mark as Blocked";
+                blockBtn.style.background = "var(--blocked)";
+            }
+
+            document.getElementById('task-modal').style.display = 'flex';
+        };
+
+        window.closeModal = function() {
+            // Save notes on close
+            const newNotes = document.getElementById('modal-notes').value;
+            if(activeTaskId && newNotes !== activeTaskData.notes) {
+                update(ref(db, 'tasks/' + activeTaskId), { notes: newNotes });
+            }
+            document.getElementById('task-modal').style.display = 'none';
+            activeTaskId = null;
+        };
+
+        window.moveTaskFromModal = function(direction) {
+            if(!activeTaskId) return;
+            const currentStatus = activeTaskData.status;
+            let nextStatus = currentStatus;
+
+            if(direction === 'forward') {
+                if(currentStatus === 'todo') nextStatus = 'progress';
+                else if(currentStatus === 'progress') nextStatus = 'done';
+            } else if (direction === 'back') {
+                if(currentStatus === 'done') nextStatus = 'progress';
+                else if(currentStatus === 'progress') nextStatus = 'todo';
+            }
+
+            if(currentStatus === 'done' && direction === 'forward') {
+                if(confirm("Delete this completed task from the board?")) {
+                    remove(ref(db, 'tasks/' + activeTaskId));
+                    closeModal();
+                    return;
+                }
+            } else {
+                update(ref(db, 'tasks/' + activeTaskId), { status: nextStatus, blocked: false });
+            }
+            closeModal();
+        };
+
+        window.toggleBlockTask = function() {
+            if(!activeTaskId) return;
+            const isCurrentlyBlocked = activeTaskData.blocked || false;
+            update(ref(db, 'tasks/' + activeTaskId), { blocked: !isCurrentlyBlocked });
+            closeModal();
+        };
+
         window.addTask = function() {
             const name = document.getElementById('new-task-name').value.trim();
             const owner = document.getElementById('new-task-owner').value;
             if(!name) return;
-            push(ref(db, 'tasks'), { name: name, owner: owner, status: 'todo' });
+            push(ref(db, 'tasks'), { name: name, owner: owner, status: 'todo', blocked: false, notes: '' });
             document.getElementById('new-task-name').value = '';
         };
 
-        window.moveTask = function(taskId, currentStatus) {
-            let nextStatus = 'todo';
-            if(currentStatus === 'todo') nextStatus = 'progress';
-            else if(currentStatus === 'progress') nextStatus = 'done';
-            else if(currentStatus === 'done') {
-                if(confirm("Delete this completed task?")) {
-                    remove(ref(db, 'tasks/' + taskId));
-                    return;
-                }
-                nextStatus = 'todo'; // loop back if not deleted
-            }
-            update(ref(db, 'tasks/' + taskId), { status: nextStatus });
-        };
-
         // --- REALTIME SYNC: TASKS ---
-        let currentTasks = [];
+        let currentTasksData = {}; // Keep a dictionary for the modal to access
+        
         onValue(ref(db, 'tasks'), (snapshot) => {
             document.getElementById('list-todo').innerHTML = '';
             document.getElementById('list-progress').innerHTML = '';
             document.getElementById('list-done').innerHTML = '';
             
-            const data = snapshot.val();
-            currentTasks = [];
+            const data = snapshot.val() || {};
+            currentTasksData = data;
             
-            // Seed initial data if totally empty
-            if(!data) {
-                const defaults = [
-                    {n: "Feed Garry & Lizard", o: "Jacob"}, {n: "Maremma Training", o: "Lyla"}, 
-                    {n: "Dishes", o: "Jacob"}, {n: "Fold Clothes", o: "Lyla"},
-                    {n: "Vacuum", o: "Mum"}, {n: "Check Stables", o: "Dad"}
-                ];
-                defaults.forEach(t => push(ref(db, 'tasks'), { name: t.n, owner: t.o, status: 'todo' }));
-                return;
-            }
-
             for (let id in data) {
                 const task = data[id];
-                currentTasks.push(task);
                 const el = document.createElement('div');
-                el.className = 'task';
+                el.className = `task ${task.blocked ? 'is-blocked' : ''}`;
                 el.setAttribute('data-owner', task.owner);
-                el.onclick = () => window.moveTask(id, task.status);
-                el.innerHTML = `<span><strong>${task.name}</strong> <br><small style="color:#888">${task.owner}</small></span> <span>▶</span>`;
+                el.onclick = () => window.openTaskModal(id);
+                
+                let icon = task.blocked ? '🛑' : '⚙️';
+                if(task.status === 'done') icon = '🗑️';
+
+                let notesIndicator = task.notes ? '<br><small style="color:#3b82f6">📝 Has notes</small>' : '';
+
+                if(task.status === 'done') {
+                    el.innerHTML = `<span><strike>${task.name}</strike> <br><small style="color:#888">${task.owner}</small>${notesIndicator}</span> <span>${icon}</span>`;
+                } else {
+                    el.innerHTML = `<span><strong>${task.name}</strong> <br><small style="color:#888">${task.owner}</small>${notesIndicator}</span> <span>${icon}</span>`;
+                }
                 
                 if(task.status === 'todo') document.getElementById('list-todo').appendChild(el);
                 if(task.status === 'progress') document.getElementById('list-progress').appendChild(el);
-                if(task.status === 'done') {
-                    el.innerHTML = `<span><strike>${task.name}</strike> <br><small style="color:#888">${task.owner}</small></span> <span>🗑️</span>`;
-                    document.getElementById('list-done').appendChild(el);
-                }
+                if(task.status === 'done') document.getElementById('list-done').appendChild(el);
             }
-            updateChart(); // Update chart if open
+            updateChart(); 
         });
 
         // --- REALTIME SYNC & LOGIC: TIMERS ---
         let timersData = { lyla: { hw: 0, out: 0 }, jacob: { hw: 0, out: 0 } };
-        let activeTimer = null; // Local active timer tracking
+        let activeTimer = null; 
         let activeInterval = null;
 
         onValue(ref(db, 'timers'), (snapshot) => {
@@ -194,7 +251,6 @@
             const btnId = `btn-${kid}-${type}`;
             const btn = document.getElementById(btnId);
             
-            // If clicking the currently active timer, Stop it.
             if(activeTimer === btnId) {
                 clearInterval(activeInterval);
                 btn.classList.remove('active');
@@ -203,12 +259,8 @@
                 return;
             }
 
-            // If another timer is running, stop it first (can only do 1 thing at a time)
-            if(activeTimer) {
-                alert("Stop current timer first!"); return;
-            }
+            if(activeTimer) { alert("Stop current timer first!"); return; }
 
-            // Start new timer
             activeTimer = btnId;
             btn.classList.add('active');
             btn.innerHTML = btn.innerHTML.replace('▶', '⏹ Stop');
@@ -216,9 +268,8 @@
             activeInterval = setInterval(() => {
                 let currentMins = timersData[kid]?.[type] || 0;
                 currentMins += 1;
-                // Push update to Firebase every minute
                 update(ref(db, `timers/${kid}`), { [type]: currentMins });
-            }, 60000); // 60,000 ms = 1 minute
+            }, 60000); 
         };
 
         // --- ANALYTICS / CHART ---
@@ -234,7 +285,10 @@
             if(!document.getElementById('chart-container').style.display === 'block') return;
             
             const counts = { Lyla: 0, Jacob: 0, Mum: 0, Dad: 0 };
-            currentTasks.forEach(t => { if(t.status === 'done' && counts[t.owner] !== undefined) counts[t.owner]++; });
+            for(let id in currentTasksData) {
+                let t = currentTasksData[id];
+                if(t.status === 'done' && counts[t.owner] !== undefined) counts[t.owner]++;
+            }
 
             const ctx = document.getElementById('statsChart').getContext('2d');
             if(myChart) myChart.destroy();
