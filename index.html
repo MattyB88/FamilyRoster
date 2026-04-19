@@ -6,19 +6,24 @@
     <title>Board of Eventuallaty</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #121212; --card: #1e1e1e; --text: #fff; --accent: #3b82f6; --lyla: #a855f7; --jacob: #10b981; --dad: #f59e0b; --mum: #ef4444; --blocked: #dc2626;}
+        :root { --bg: #121212; --card: #1e1e1e; --text: #fff; --accent: #3b82f6; --lyla: #a855f7; --jacob: #10b981; --dad: #f59e0b; --mum: #ef4444; --blocked: #dc2626; --gold: #fbbf24;}
         * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
         body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
         h1 { text-align: center; color: var(--accent); font-size: 22px; margin-bottom: 5px; }
-        .subtitle { text-align: center; color: #888; font-size: 12px; margin-top: 0; margin-bottom: 20px;}
+        .subtitle { text-align: center; color: #888; font-size: 12px; margin-top: 0; margin-bottom: 15px;}
         
-        .timers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .kid-card { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border-top: 4px solid; }
+        .timers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .kid-card { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border-top: 4px solid; position: relative;}
         .kid-card.lyla { border-color: var(--lyla); } .kid-card.jacob { border-color: var(--jacob); }
+        .bank-balance { position: absolute; top: 10px; right: 10px; color: var(--gold); font-weight: bold; font-size: 14px;}
         .timer-btn { width: 100%; padding: 8px; margin: 4px 0; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
         .timer-btn.hw { background: #333; } .timer-btn.out { background: #333; }
         .timer-btn.active { background: #eab308; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .add-task { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; background: var(--card); padding: 10px; border-radius: 8px;}
+        .add-task input, .add-task select { padding: 10px; background: #111; border: 1px solid #333; color: white; border-radius: 6px; }
+        .add-task button { padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; flex-grow: 1;}
 
         .board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;}
         .column { flex: 0 0 85%; background: #1a1a1a; border-radius: 8px; padding: 10px; scroll-snap-align: start; border: 1px solid #333;}
@@ -29,24 +34,23 @@
         .task[data-owner="Dad"] { border-color: var(--dad); } .task[data-owner="Mum"] { border-color: var(--mum); }
         .task.is-blocked { border-color: var(--blocked); background: #3f1515; }
         
-        .add-task { display: flex; gap: 5px; margin-bottom: 20px; }
-        .add-task input, .add-task select { padding: 10px; background: var(--card); border: 1px solid #333; color: white; border-radius: 6px; }
-        .add-task button { padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; flex-grow: 1;}
+        .admin-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .admin-btn { padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;}
+        #close-week-btn { background: var(--gold); color: #000; grid-column: span 2;}
 
-        #analytics-btn { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer;}
-        #chart-container { display: none; background: var(--card); padding: 15px; border-radius: 8px; margin-top: 15px; }
-
-        /* --- NEW MODAL STYLES --- */
-        #task-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; border: 1px solid #444;}
+        /* MODALS */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; border-radius: 12px; padding: 20px; border: 1px solid #444; max-height: 80vh; overflow-y: auto;}
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;}
-        .modal-header h2 { margin: 0; font-size: 18px; color: var(--accent);}
         .close-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer;}
-        .modal-notes { width: 100%; height: 80px; background: #111; color: white; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-family: inherit;}
-        .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;}
+        
+        /* Task Control Modal */
+        .modal-notes { width: 100%; height: 80px; background: #111; color: white; border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 15px;}
+        .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px;}
         .action-btn { padding: 12px; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;}
-        .btn-back { background: #4b5563; } .btn-fwd { background: var(--accent); }
-        .btn-block { background: var(--blocked); grid-column: span 2; }
+        
+        /* Archive List */
+        .archive-item { border-bottom: 1px solid #333; padding: 10px 0; font-size: 12px;}
     </style>
 </head>
 <body>
@@ -56,22 +60,25 @@
 
     <div class="timers-grid">
         <div class="kid-card lyla">
-            <h3>Lyla</h3>
-            <button id="btn-lyla-hw" class="timer-btn hw" onclick="toggleTimer('lyla', 'hw')">▶ Homework: <span id="lyla-hw-val">0</span>m</button>
-            <button id="btn-lyla-out" class="timer-btn out" onclick="toggleTimer('lyla', 'out')">▶ Maremmas/Out: <span id="lyla-out-val">0</span>m</button>
+            <div class="bank-balance" id="lyla-bank">$0.00</div>
+            <h3 style="margin-top:5px; margin-bottom:5px;">Lyla</h3>
+            <button id="btn-lyla-hw" class="timer-btn hw" onclick="toggleTimer('lyla', 'hw')">▶ HW: <span id="lyla-hw-val">0</span>m</button>
+            <button id="btn-lyla-out" class="timer-btn out" onclick="toggleTimer('lyla', 'out')">▶ Dogs/Out: <span id="lyla-out-val">0</span>m</button>
         </div>
         <div class="kid-card jacob">
-            <h3>Jacob</h3>
-            <button id="btn-jacob-hw" class="timer-btn hw" onclick="toggleTimer('jacob', 'hw')">▶ Homework: <span id="jacob-hw-val">0</span>m</button>
+            <div class="bank-balance" id="jacob-bank">$0.00</div>
+            <h3 style="margin-top:5px; margin-bottom:5px;">Jacob</h3>
+            <button id="btn-jacob-hw" class="timer-btn hw" onclick="toggleTimer('jacob', 'hw')">▶ HW: <span id="jacob-hw-val">0</span>m</button>
             <button id="btn-jacob-out" class="timer-btn out" onclick="toggleTimer('jacob', 'out')">▶ Garry/Out: <span id="jacob-out-val">0</span>m</button>
         </div>
     </div>
 
     <div class="add-task">
-        <input type="text" id="new-task-name" placeholder="New Chore..." style="flex-grow: 2;">
-        <select id="new-task-owner">
+        <input type="text" id="new-task-name" placeholder="New Chore..." style="flex-grow: 1; min-width: 150px;">
+        <select id="new-task-owner" style="width: 80px;">
             <option value="Any">Any</option><option value="Lyla">Lyla</option><option value="Jacob">Jacob</option><option value="Mum">Mum</option><option value="Dad">Dad</option>
         </select>
+        <input type="number" id="new-task-value" placeholder="$ Val" style="width: 70px;" min="0" step="0.5">
         <button onclick="addTask()">ADD</button>
     </div>
 
@@ -81,33 +88,43 @@
         <div class="column" id="col-done"><div class="col-header">✅ Done</div><div class="task-list" id="list-done"></div></div>
     </div>
 
-    <button id="analytics-btn" onclick="toggleAnalytics()">📊 VIEW WEEKLY STATS</button>
-    <div id="chart-container"><canvas id="statsChart"></canvas></div>
+    <div class="admin-controls">
+        <button class="admin-btn" onclick="openArchive()">🗓️ View Archive</button>
+        <button class="admin-btn" onclick="manualAddFunds()">💰 Adjust Bank</button>
+        <button id="close-week-btn" class="admin-btn" onclick="closeWeek()">🏁 CLOSE WEEK & PAY</button>
+    </div>
 
-    <div id="task-modal">
+    <div id="task-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h2 id="modal-task-name">Task Name</h2>
-                    <small id="modal-task-owner" style="color:#888;">Owner</small>
+                    <h2 id="modal-task-name" style="margin:0; color:var(--accent);">Task Name</h2>
+                    <small id="modal-task-owner" style="color:#888;">Owner</small> <span id="modal-task-val" style="color:var(--gold); font-weight:bold; margin-left:10px;"></span>
                 </div>
-                <button class="close-btn" onclick="closeModal()">×</button>
+                <button class="close-btn" onclick="closeModal('task-modal')">×</button>
             </div>
-            
-            <label style="font-size:12px; color:#aaa;">Notes / Reason if blocked:</label>
-            <textarea id="modal-notes" class="modal-notes" placeholder="Add details here..."></textarea>
-            
+            <textarea id="modal-notes" class="modal-notes" placeholder="Notes or reason blocked..."></textarea>
             <div class="modal-actions">
-                <button class="action-btn btn-back" onclick="moveTaskFromModal('back')">← Move Back</button>
-                <button class="action-btn btn-fwd" onclick="moveTaskFromModal('forward')">Move Forward →</button>
-                <button class="action-btn btn-block" id="modal-block-btn" onclick="toggleBlockTask()">🛑 Mark as Blocked</button>
+                <button class="action-btn" style="background:#4b5563;" onclick="moveTaskFromModal('back')">← Move Back</button>
+                <button class="action-btn" style="background:var(--accent);" onclick="moveTaskFromModal('forward')">Move Forward →</button>
+                <button class="action-btn" style="background:var(--blocked); grid-column:span 2;" id="modal-block-btn" onclick="toggleBlockTask()">🛑 Mark as Blocked</button>
             </div>
+        </div>
+    </div>
+
+    <div id="archive-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="margin:0;">Archived History</h2>
+                <button class="close-btn" onclick="closeModal('archive-modal')">×</button>
+            </div>
+            <div id="archive-list">Loading...</div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-        import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+        import { getDatabase, ref, onValue, push, remove, update, get } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDIZPvA5GUPfmyVrQYFN61wFsyHhtGZyyI",
@@ -121,43 +138,104 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- NEW MODAL LOGIC ---
-        let activeTaskId = null;
-        let activeTaskData = null;
+        const PARENT_PIN = "1234"; // <--- CHANGE THIS IF THE KIDS FIGURE IT OUT
 
+        function verifyParent() {
+            const pin = prompt("Enter Parent PIN to proceed:");
+            return pin === PARENT_PIN;
+        }
+
+        // --- GLOBAL VARIABLES ---
+        let currentTasksData = {}; 
+        let activeTaskId = null;
+        let ledgerData = { lyla: 0, jacob: 0 };
+
+        // --- SYNC LEDGER (BANK) ---
+        onValue(ref(db, 'ledger'), (snapshot) => {
+            const data = snapshot.val() || { lyla: 0, jacob: 0 };
+            ledgerData = data;
+            document.getElementById('lyla-bank').innerText = `$${(data.lyla || 0).toFixed(2)}`;
+            document.getElementById('jacob-bank').innerText = `$${(data.jacob || 0).toFixed(2)}`;
+        });
+
+        // --- SYNC TASKS ---
+        onValue(ref(db, 'tasks'), (snapshot) => {
+            document.getElementById('list-todo').innerHTML = '';
+            document.getElementById('list-progress').innerHTML = '';
+            document.getElementById('list-done').innerHTML = '';
+            
+            currentTasksData = snapshot.val() || {};
+            
+            for (let id in currentTasksData) {
+                const task = currentTasksData[id];
+                const el = document.createElement('div');
+                el.className = `task ${task.blocked ? 'is-blocked' : ''}`;
+                el.setAttribute('data-owner', task.owner);
+                el.onclick = () => window.openTaskModal(id);
+                
+                let icon = task.blocked ? '🛑' : '▶';
+                if(task.status === 'done') icon = '✅';
+
+                let valIndicator = task.value > 0 ? `<span style="color:var(--gold); font-weight:bold; margin-left:5px;">$${task.value}</span>` : '';
+
+                if(task.status === 'done') {
+                    el.innerHTML = `<span><strike>${task.name}</strike> <br><small style="color:#888">${task.owner}</small>${valIndicator}</span> <span>${icon}</span>`;
+                } else {
+                    el.innerHTML = `<span><strong>${task.name}</strong> <br><small style="color:#888">${task.owner}</small>${valIndicator}</span> <span>${icon}</span>`;
+                }
+                
+                if(task.status === 'todo') document.getElementById('list-todo').appendChild(el);
+                if(task.status === 'progress') document.getElementById('list-progress').appendChild(el);
+                if(task.status === 'done') document.getElementById('list-done').appendChild(el);
+            }
+        });
+
+        // --- ADD TASK ---
+        window.addTask = function() {
+            const name = document.getElementById('new-task-name').value.trim();
+            const owner = document.getElementById('new-task-owner').value;
+            const value = parseFloat(document.getElementById('new-task-value').value) || 0;
+            
+            if(!name) return;
+            push(ref(db, 'tasks'), { name: name, owner: owner, value: value, status: 'todo', blocked: false, notes: '' });
+            
+            document.getElementById('new-task-name').value = '';
+            document.getElementById('new-task-value').value = '';
+        };
+
+        // --- TASK MODAL LOGIC ---
         window.openTaskModal = function(id) {
             activeTaskId = id;
-            activeTaskData = currentTasksData[id];
+            const task = currentTasksData[id];
             
-            document.getElementById('modal-task-name').innerText = activeTaskData.name;
-            document.getElementById('modal-task-owner').innerText = activeTaskData.owner;
-            document.getElementById('modal-notes').value = activeTaskData.notes || '';
+            document.getElementById('modal-task-name').innerText = task.name;
+            document.getElementById('modal-task-owner').innerText = task.owner;
+            document.getElementById('modal-task-val').innerText = task.value > 0 ? `$${task.value}` : '';
+            document.getElementById('modal-notes').value = task.notes || '';
             
             const blockBtn = document.getElementById('modal-block-btn');
-            if(activeTaskData.blocked) {
-                blockBtn.innerText = "✅ Unblock Task";
-                blockBtn.style.background = "#10b981"; // green
+            if(task.blocked) {
+                blockBtn.innerText = "✅ Unblock Task"; blockBtn.style.background = "#10b981";
             } else {
-                blockBtn.innerText = "🛑 Mark as Blocked";
-                blockBtn.style.background = "var(--blocked)";
+                blockBtn.innerText = "🛑 Mark as Blocked"; blockBtn.style.background = "var(--blocked)";
             }
-
             document.getElementById('task-modal').style.display = 'flex';
         };
 
-        window.closeModal = function() {
-            // Save notes on close
-            const newNotes = document.getElementById('modal-notes').value;
-            if(activeTaskId && newNotes !== activeTaskData.notes) {
-                update(ref(db, 'tasks/' + activeTaskId), { notes: newNotes });
+        window.closeModal = function(modalId) {
+            if(modalId === 'task-modal' && activeTaskId) {
+                const newNotes = document.getElementById('modal-notes').value;
+                if(newNotes !== currentTasksData[activeTaskId].notes) {
+                    update(ref(db, 'tasks/' + activeTaskId), { notes: newNotes });
+                }
+                activeTaskId = null;
             }
-            document.getElementById('task-modal').style.display = 'none';
-            activeTaskId = null;
+            document.getElementById(modalId).style.display = 'none';
         };
 
         window.moveTaskFromModal = function(direction) {
             if(!activeTaskId) return;
-            const currentStatus = activeTaskData.status;
+            const currentStatus = currentTasksData[activeTaskId].status;
             let nextStatus = currentStatus;
 
             if(direction === 'forward') {
@@ -168,144 +246,116 @@
                 else if(currentStatus === 'progress') nextStatus = 'todo';
             }
 
-            if(currentStatus === 'done' && direction === 'forward') {
-                if(confirm("Delete this completed task from the board?")) {
-                    remove(ref(db, 'tasks/' + activeTaskId));
-                    closeModal();
-                    return;
-                }
-            } else {
-                update(ref(db, 'tasks/' + activeTaskId), { status: nextStatus, blocked: false });
-            }
-            closeModal();
+            update(ref(db, 'tasks/' + activeTaskId), { status: nextStatus, blocked: false });
+            closeModal('task-modal');
         };
 
         window.toggleBlockTask = function() {
             if(!activeTaskId) return;
-            const isCurrentlyBlocked = activeTaskData.blocked || false;
-            update(ref(db, 'tasks/' + activeTaskId), { blocked: !isCurrentlyBlocked });
-            closeModal();
+            update(ref(db, 'tasks/' + activeTaskId), { blocked: !currentTasksData[activeTaskId].blocked });
+            closeModal('task-modal');
         };
 
-        window.addTask = function() {
-            const name = document.getElementById('new-task-name').value.trim();
-            const owner = document.getElementById('new-task-owner').value;
-            if(!name) return;
-            push(ref(db, 'tasks'), { name: name, owner: owner, status: 'todo', blocked: false, notes: '' });
-            document.getElementById('new-task-name').value = '';
-        };
-
-        // --- REALTIME SYNC: TASKS ---
-        let currentTasksData = {}; // Keep a dictionary for the modal to access
-        
-        onValue(ref(db, 'tasks'), (snapshot) => {
-            document.getElementById('list-todo').innerHTML = '';
-            document.getElementById('list-progress').innerHTML = '';
-            document.getElementById('list-done').innerHTML = '';
-            
-            const data = snapshot.val() || {};
-            currentTasksData = data;
-            
-            for (let id in data) {
-                const task = data[id];
-                const el = document.createElement('div');
-                el.className = `task ${task.blocked ? 'is-blocked' : ''}`;
-                el.setAttribute('data-owner', task.owner);
-                el.onclick = () => window.openTaskModal(id);
-                
-                let icon = task.blocked ? '🛑' : '⚙️';
-                if(task.status === 'done') icon = '🗑️';
-
-                let notesIndicator = task.notes ? '<br><small style="color:#3b82f6">📝 Has notes</small>' : '';
-
-                if(task.status === 'done') {
-                    el.innerHTML = `<span><strike>${task.name}</strike> <br><small style="color:#888">${task.owner}</small>${notesIndicator}</span> <span>${icon}</span>`;
-                } else {
-                    el.innerHTML = `<span><strong>${task.name}</strong> <br><small style="color:#888">${task.owner}</small>${notesIndicator}</span> <span>${icon}</span>`;
-                }
-                
-                if(task.status === 'todo') document.getElementById('list-todo').appendChild(el);
-                if(task.status === 'progress') document.getElementById('list-progress').appendChild(el);
-                if(task.status === 'done') document.getElementById('list-done').appendChild(el);
-            }
-            updateChart(); 
-        });
-
-        // --- REALTIME SYNC & LOGIC: TIMERS ---
+        // --- TIMERS ---
         let timersData = { lyla: { hw: 0, out: 0 }, jacob: { hw: 0, out: 0 } };
-        let activeTimer = null; 
-        let activeInterval = null;
+        let activeTimer = null; let activeInterval = null;
 
         onValue(ref(db, 'timers'), (snapshot) => {
             const data = snapshot.val();
             if(data) {
                 timersData = data;
-                document.getElementById('lyla-hw-val').innerText = data.lyla?.hw || 0;
-                document.getElementById('lyla-out-val').innerText = data.lyla?.out || 0;
-                document.getElementById('jacob-hw-val').innerText = data.jacob?.hw || 0;
-                document.getElementById('jacob-out-val').innerText = data.jacob?.out || 0;
+                document.getElementById('lyla-hw-val').innerText = data.lyla?.hw || 0; document.getElementById('lyla-out-val').innerText = data.lyla?.out || 0;
+                document.getElementById('jacob-hw-val').innerText = data.jacob?.hw || 0; document.getElementById('jacob-out-val').innerText = data.jacob?.out || 0;
             }
         });
 
         window.toggleTimer = function(kid, type) {
-            const btnId = `btn-${kid}-${type}`;
-            const btn = document.getElementById(btnId);
-            
+            const btnId = `btn-${kid}-${type}`; const btn = document.getElementById(btnId);
             if(activeTimer === btnId) {
-                clearInterval(activeInterval);
-                btn.classList.remove('active');
-                btn.innerHTML = btn.innerHTML.replace('⏹ Stop', '▶');
-                activeTimer = null;
-                return;
+                clearInterval(activeInterval); btn.classList.remove('active'); btn.innerHTML = btn.innerHTML.replace('⏹ Stop', '▶'); activeTimer = null; return;
             }
-
             if(activeTimer) { alert("Stop current timer first!"); return; }
 
-            activeTimer = btnId;
-            btn.classList.add('active');
-            btn.innerHTML = btn.innerHTML.replace('▶', '⏹ Stop');
-            
+            activeTimer = btnId; btn.classList.add('active'); btn.innerHTML = btn.innerHTML.replace('▶', '⏹ Stop');
             activeInterval = setInterval(() => {
                 let currentMins = timersData[kid]?.[type] || 0;
-                currentMins += 1;
-                update(ref(db, `timers/${kid}`), { [type]: currentMins });
+                update(ref(db, `timers/${kid}`), { [type]: currentMins + 1 });
             }, 60000); 
         };
 
-        // --- ANALYTICS / CHART ---
-        let myChart = null;
-        window.toggleAnalytics = function() {
-            const container = document.getElementById('chart-container');
-            if(container.style.display === 'block') { container.style.display = 'none'; return; }
-            container.style.display = 'block';
-            updateChart();
+        // --- PARENT / ADMIN CONTROLS ---
+        window.manualAddFunds = function() {
+            if(!verifyParent()) { alert("Incorrect PIN"); return; }
+            let kid = prompt("Who to adjust? (Type 'Lyla' or 'Jacob')").toLowerCase();
+            if(kid !== 'lyla' && kid !== 'jacob') return;
+            
+            let amount = parseFloat(prompt(`Enter amount to ADD to ${kid}'s bank (use negative to subtract):`, "15.00"));
+            if(isNaN(amount)) return;
+
+            let newBalance = (ledgerData[kid] || 0) + amount;
+            update(ref(db, 'ledger'), { [kid]: newBalance });
+            alert(`Updated! ${kid} now has $${newBalance.toFixed(2)}`);
         };
 
-        function updateChart() {
-            if(!document.getElementById('chart-container').style.display === 'block') return;
-            
-            const counts = { Lyla: 0, Jacob: 0, Mum: 0, Dad: 0 };
-            for(let id in currentTasksData) {
+        window.closeWeek = function() {
+            if(!verifyParent()) { alert("Incorrect PIN"); return; }
+            if(!confirm("Are you sure? This will sum up Done tasks, add money to the Bank, and archive completed tasks.")) return;
+
+            let earnedLyla = 0; let earnedJacob = 0;
+            let archiveData = {};
+            const dateStr = new Date().toLocaleDateString().replace(/\//g, '-');
+
+            // 1. Process Done Tasks
+            for (let id in currentTasksData) {
                 let t = currentTasksData[id];
-                if(t.status === 'done' && counts[t.owner] !== undefined) counts[t.owner]++;
+                if(t.status === 'done') {
+                    // Tally money
+                    if(t.owner === 'Lyla' && t.value) earnedLyla += t.value;
+                    if(t.owner === 'Jacob' && t.value) earnedJacob += t.value;
+                    
+                    // Add to archive payload
+                    archiveData[id] = { ...t, archivedOn: dateStr };
+                    
+                    // Remove from active board
+                    remove(ref(db, 'tasks/' + id));
+                }
             }
 
-            const ctx = document.getElementById('statsChart').getContext('2d');
-            if(myChart) myChart.destroy();
+            // 2. Add Base Pay Prompt
+            if(confirm("Add $15 Base Pay to Lyla? (All core chores done?)")) earnedLyla += 15;
+            if(confirm("Add $15 Base Pay to Jacob? (All core chores done?)")) earnedJacob += 15;
+
+            // 3. Update Firebase
+            if(Object.keys(archiveData).length > 0) {
+                update(ref(db, `archive/${dateStr}`), archiveData);
+            }
             
-            myChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Lyla', 'Jacob', 'Mum', 'Dad'],
-                    datasets: [{
-                        label: 'Completed Chores',
-                        data: [counts.Lyla, counts.Jacob, counts.Mum, counts.Dad],
-                        backgroundColor: ['#a855f7', '#10b981', '#ef4444', '#f59e0b']
-                    }]
-                },
-                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#fff' } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { labels: { color: '#fff' } } } }
+            update(ref(db, 'ledger'), { 
+                lyla: (ledgerData.lyla || 0) + earnedLyla, 
+                jacob: (ledgerData.jacob || 0) + earnedJacob 
             });
-        }
-    </script>
-</body>
-</html>
+
+            // 4. Reset Timers
+            update(ref(db, 'timers'), { lyla: { hw: 0, out: 0 }, jacob: { hw: 0, out: 0 } });
+
+            alert(`Week Closed!\nLyla Earned: $${earnedLyla}\nJacob Earned: $${earnedJacob}\nUncompleted tasks rolled over.`);
+        };
+
+        window.openArchive = function() {
+            document.getElementById('archive-modal').style.display = 'flex';
+            const list = document.getElementById('archive-list');
+            list.innerHTML = "Loading...";
+
+            get(ref(db, 'archive')).then((snapshot) => {
+                const data = snapshot.val();
+                if(!data) { list.innerHTML = "No archived tasks yet."; return; }
+                
+                list.innerHTML = '';
+                // data is grouped by date string
+                for(let date in data) {
+                    list.innerHTML += `<h3 style="color:var(--accent); border-bottom:1px solid #333; margin-top:15px;">Week of ${date}</h3>`;
+                    let tasks = data[date];
+                    for(let id in tasks) {
+                        let t = tasks[id];
+                        list.innerHTML += `
+                            <div
