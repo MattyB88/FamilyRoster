@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Board of Eventuallaty</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --bg: #121212; --card: #1e1e1e; --text: #fff; --accent: #3b82f6; --lyla: #a855f7; --jacob: #10b981; --dad: #f59e0b; --mum: #ef4444; }
+        * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
+        h1 { text-align: center; color: var(--accent); font-size: 22px; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #888; font-size: 12px; margin-top: 0; margin-bottom: 20px;}
+        
+        /* Timers Section */
+        .timers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .kid-card { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border-top: 4px solid; }
+        .kid-card.lyla { border-color: var(--lyla); }
+        .kid-card.jacob { border-color: var(--jacob); }
+        .timer-btn { width: 100%; padding: 8px; margin: 4px 0; border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; }
+        .timer-btn.hw { background: #333; } .timer-btn.out { background: #333; }
+        .timer-btn.active { background: #eab308; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        /* Kanban Board */
+        .board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;}
+        .column { flex: 0 0 85%; background: #1a1a1a; border-radius: 8px; padding: 10px; scroll-snap-align: start; border: 1px solid #333;}
+        .col-header { font-weight: bold; text-transform: uppercase; font-size: 14px; margin-bottom: 10px; color: #aaa; text-align: center;}
+        
+        .task { background: var(--card); padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #555; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .task[data-owner="Lyla"] { border-color: var(--lyla); }
+        .task[data-owner="Jacob"] { border-color: var(--jacob); }
+        .task[data-owner="Dad"] { border-color: var(--dad); }
+        .task[data-owner="Mum"] { border-color: var(--mum); }
+        
+        .add-task { display: flex; gap: 5px; margin-bottom: 20px; }
+        .add-task input, .add-task select { padding: 10px; background: var(--card); border: 1px solid #333; color: white; border-radius: 6px; }
+        .add-task button { padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: bold; flex-grow: 1;}
+
+        /* Analytics */
+        #analytics-btn { width: 100%; padding: 15px; background: #333; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer;}
+        #chart-container { display: none; background: var(--card); padding: 15px; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+    <h1>BOARD OF EVENTUALLATY</h1>
+    <p class="subtitle">Live Family Roster</p>
+
+    <div class="timers-grid">
+        <div class="kid-card lyla">
+            <h3>Lyla</h3>
+            <button id="btn-lyla-hw" class="timer-btn hw" onclick="toggleTimer('lyla', 'hw')">▶ Homework: <span id="lyla-hw-val">0</span>m</button>
+            <button id="btn-lyla-out" class="timer-btn out" onclick="toggleTimer('lyla', 'out')">▶ Maremmas/Out: <span id="lyla-out-val">0</span>m</button>
+        </div>
+        <div class="kid-card jacob">
+            <h3>Jacob</h3>
+            <button id="btn-jacob-hw" class="timer-btn hw" onclick="toggleTimer('jacob', 'hw')">▶ Homework: <span id="jacob-hw-val">0</span>m</button>
+            <button id="btn-jacob-out" class="timer-btn out" onclick="toggleTimer('jacob', 'out')">▶ Garry/Out: <span id="jacob-out-val">0</span>m</button>
+        </div>
+    </div>
+
+    <div class="add-task">
+        <input type="text" id="new-task-name" placeholder="New Chore..." style="flex-grow: 2;">
+        <select id="new-task-owner">
+            <option value="Any">Any</option>
+            <option value="Lyla">Lyla</option>
+            <option value="Jacob">Jacob</option>
+            <option value="Mum">Mum</option>
+            <option value="Dad">Dad</option>
+        </select>
+        <button onclick="addTask()">ADD</button>
+    </div>
+
+    <p style="font-size:10px; color:#888; text-align:center;">Swipe columns left/right. Tap a task to move it forward.</p>
+
+    <div class="board">
+        <div class="column" id="col-todo">
+            <div class="col-header">📌 To Do</div>
+            <div class="task-list" id="list-todo"></div>
+        </div>
+        <div class="column" id="col-progress">
+            <div class="col-header">⏳ In Progress</div>
+            <div class="task-list" id="list-progress"></div>
+        </div>
+        <div class="column" id="col-done">
+            <div class="col-header">✅ Done</div>
+            <div class="task-list" id="list-done"></div>
+        </div>
+    </div>
+
+    <button id="analytics-btn" onclick="toggleAnalytics()">📊 VIEW WEEKLY STATS</button>
+    <div id="chart-container">
+        <canvas id="statsChart"></canvas>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+        // Your exact Firebase keys
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIZPvA5GUPfmyVrQYFN61wFsyHhtGZyyI",
+            authDomain: "liveroster-f26ea.firebaseapp.com",
+            projectId: "liveroster-f26ea",
+            storageBucket: "liveroster-f26ea.firebasestorage.app",
+            messagingSenderId: "428546877467",
+            appId: "1:428546877467:web:ce988fa4b7627de0a1f0be"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- GLOBAL LOGIC FOR HTML BUTTONS ---
+        window.addTask = function() {
+            const name = document.getElementById('new-task-name').value.trim();
+            const owner = document.getElementById('new-task-owner').value;
+            if(!name) return;
+            push(ref(db, 'tasks'), { name: name, owner: owner, status: 'todo' });
+            document.getElementById('new-task-name').value = '';
+        };
+
+        window.moveTask = function(taskId, currentStatus) {
+            let nextStatus = 'todo';
+            if(currentStatus === 'todo') nextStatus = 'progress';
+            else if(currentStatus === 'progress') nextStatus = 'done';
+            else if(currentStatus === 'done') {
+                if(confirm("Delete this completed task?")) {
+                    remove(ref(db, 'tasks/' + taskId));
+                    return;
+                }
+                nextStatus = 'todo'; // loop back if not deleted
+            }
+            update(ref(db, 'tasks/' + taskId), { status: nextStatus });
+        };
+
+        // --- REALTIME SYNC: TASKS ---
+        let currentTasks = [];
+        onValue(ref(db, 'tasks'), (snapshot) => {
+            document.getElementById('list-todo').innerHTML = '';
+            document.getElementById('list-progress').innerHTML = '';
+            document.getElementById('list-done').innerHTML = '';
+            
+            const data = snapshot.val();
+            currentTasks = [];
+            
+            // Seed initial data if totally empty
+            if(!data) {
+                const defaults = [
+                    {n: "Feed Garry & Lizard", o: "Jacob"}, {n: "Maremma Training", o: "Lyla"}, 
+                    {n: "Dishes", o: "Jacob"}, {n: "Fold Clothes", o: "Lyla"},
+                    {n: "Vacuum", o: "Mum"}, {n: "Check Stables", o: "Dad"}
+                ];
+                defaults.forEach(t => push(ref(db, 'tasks'), { name: t.n, owner: t.o, status: 'todo' }));
+                return;
+            }
+
+            for (let id in data) {
+                const task = data[id];
+                currentTasks.push(task);
+                const el = document.createElement('div');
+                el.className = 'task';
+                el.setAttribute('data-owner', task.owner);
+                el.onclick = () => window.moveTask(id, task.status);
+                el.innerHTML = `<span><strong>${task.name}</strong> <br><small style="color:#888">${task.owner}</small></span> <span>▶</span>`;
+                
+                if(task.status === 'todo') document.getElementById('list-todo').appendChild(el);
+                if(task.status === 'progress') document.getElementById('list-progress').appendChild(el);
+                if(task.status === 'done') {
+                    el.innerHTML = `<span><strike>${task.name}</strike> <br><small style="color:#888">${task.owner}</small></span> <span>🗑️</span>`;
+                    document.getElementById('list-done').appendChild(el);
+                }
+            }
+            updateChart(); // Update chart if open
+        });
+
+        // --- REALTIME SYNC & LOGIC: TIMERS ---
+        let timersData = { lyla: { hw: 0, out: 0 }, jacob: { hw: 0, out: 0 } };
+        let activeTimer = null; // Local active timer tracking
+        let activeInterval = null;
+
+        onValue(ref(db, 'timers'), (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                timersData = data;
+                document.getElementById('lyla-hw-val').innerText = data.lyla?.hw || 0;
+                document.getElementById('lyla-out-val').innerText = data.lyla?.out || 0;
+                document.getElementById('jacob-hw-val').innerText = data.jacob?.hw || 0;
+                document.getElementById('jacob-out-val').innerText = data.jacob?.out || 0;
+            }
+        });
+
+        window.toggleTimer = function(kid, type) {
+            const btnId = `btn-${kid}-${type}`;
+            const btn = document.getElementById(btnId);
+            
+            // If clicking the currently active timer, Stop it.
+            if(activeTimer === btnId) {
+                clearInterval(activeInterval);
+                btn.classList.remove('active');
+                btn.innerHTML = btn.innerHTML.replace('⏹ Stop', '▶');
+                activeTimer = null;
+                return;
+            }
+
+            // If another timer is running, stop it first (can only do 1 thing at a time)
+            if(activeTimer) {
+                alert("Stop current timer first!"); return;
+            }
+
+            // Start new timer
+            activeTimer = btnId;
+            btn.classList.add('active');
+            btn.innerHTML = btn.innerHTML.replace('▶', '⏹ Stop');
+            
+            activeInterval = setInterval(() => {
+                let currentMins = timersData[kid]?.[type] || 0;
+                currentMins += 1;
+                // Push update to Firebase every minute
+                update(ref(db, `timers/${kid}`), { [type]: currentMins });
+            }, 60000); // 60,000 ms = 1 minute
+        };
+
+        // --- ANALYTICS / CHART ---
+        let myChart = null;
+        window.toggleAnalytics = function() {
+            const container = document.getElementById('chart-container');
+            if(container.style.display === 'block') { container.style.display = 'none'; return; }
+            container.style.display = 'block';
+            updateChart();
+        };
+
+        function updateChart() {
+            if(!document.getElementById('chart-container').style.display === 'block') return;
+            
+            const counts = { Lyla: 0, Jacob: 0, Mum: 0, Dad: 0 };
+            currentTasks.forEach(t => { if(t.status === 'done' && counts[t.owner] !== undefined) counts[t.owner]++; });
+
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            if(myChart) myChart.destroy();
+            
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Lyla', 'Jacob', 'Mum', 'Dad'],
+                    datasets: [{
+                        label: 'Completed Chores',
+                        data: [counts.Lyla, counts.Jacob, counts.Mum, counts.Dad],
+                        backgroundColor: ['#a855f7', '#10b981', '#ef4444', '#f59e0b']
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1, color: '#fff' } }, x: { ticks: { color: '#fff' } } }, plugins: { legend: { labels: { color: '#fff' } } } }
+            });
+        }
+    </script>
+</body>
+</html>
